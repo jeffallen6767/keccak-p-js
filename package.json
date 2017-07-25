@@ -1,0 +1,21 @@
+{
+  "name": "keccak-p-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffallen6767/keccak-p-js.git"
+  },
+  "author": "jeff allen",
+  "bugs": {
+    "url": "https://github.com/jeffallen6767/keccak-p-js/issues"
+  },
+  "homepage": "https://github.com/jeffallen6767/keccak-p-js#readme",
+  "dependencies": {
+
+  }
+}
