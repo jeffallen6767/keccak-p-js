@@ -13,7 +13,7 @@ b = [25, 50, 100, 200, 400, 800, 1600],
   w = [1, 2, 4, 8, 16, 32, 64],
 */
 var 
-  KECCAK_ROUNDS = 1, //24,
+  KECCAK_ROUNDS = 24,
   
   ROWS_X = 5,
   COLS_Y = 5,
@@ -105,7 +105,7 @@ RC[23][0][0] = 8000000080008008
 
 */
 // uInt64 represented as x[uInt32lo, uInt32hi]
-var rndc = [
+var iota_const = [
   [0x00000001,0x00000000], 
   [0x00008082,0x00000000], 
   [0x0000808a,0x80000000],
@@ -384,7 +384,7 @@ function sha3_keccakf(A) {
       }
     }
     console.log("After pi:", showState(E));
-    /*
+    
     // χ (chi) step
     for (y=0; y<COLS_Y; y++) {
       p = y * Y_OFFSET; // column
@@ -411,9 +411,12 @@ function sha3_keccakf(A) {
       }
     }
     console.log("After chi:", showState(A));
-    */
-    // ι (iota) step
     
+    // ι (iota) step
+    p = iota_const[i];
+    A[0] ^= p[lo];
+    A[1] ^= p[hi];
+    console.log("After iota:", showState(A));
   }
   
 }
