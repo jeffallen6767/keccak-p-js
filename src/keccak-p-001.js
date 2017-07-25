@@ -183,6 +183,22 @@ var rhoOffset = [
   18, 2, 61, 56, 14
 ];
 
+var pi_step = [
+  0,1, 20,21, 40,41, 10,11, 30,31,
+  32,33, 2,3, 22,23, 42,43, 12,13,
+  14,15, 34,35, 4,5, 24,25, 44,45,
+  46,47, 16,17, 36,37, 6,7, 26,27,
+  28,29, 48,49, 18,19, 38,39, 8,9
+];
+    
+function bits(val) {
+  return getBit32digits(val.toString(2));
+}
+
+function bit64(lo, hi) {
+  return [bits(hi),bits(lo)].join("");
+}
+
 // x is uInt64 represented as x[uInt32lo, uInt32hi]
 function ROTL64(x, y) {
   
@@ -211,17 +227,15 @@ function ROTL64(x, y) {
 }
 
 function test_ROTL64(lo, hi, num) {
-  console.log("test_ROTL64");
-  var 
-    result = ROTL64([lo,hi],num),
-    resLo = result[0],
-    resHi = result[1];
-    
-  console.log("before", [getBit32digits(hi.toString(2)),getBit32digits(lo.toString(2))].join(""));
-  console.log("after ", [getBit32digits(resHi.toString(2)),getBit32digits(resLo.toString(2))].join(""));
+  console.log(" ");
+  console.log("test_ROTL64["+num+"]");
+  var result = ROTL64([lo,hi],num);
+  console.log("     before", bit64(lo, hi));
+  console.log("     after ", bit64(result[0], result[1]));
+  console.log(" ");
 }
-test_ROTL64(0x80008008,0x80000000,1);
 test_ROTL64(0x80008008,0x80000000,0);
+test_ROTL64(0x80008008,0x80000000,1);
 
 function showState(state) {
   var result = [CRLF],
@@ -252,6 +266,7 @@ function sha3_keccakf(A) {
     B = [],
     C = [[0,0],[0,0],[0,0],[0,0],[0,0]],
     D = [[0,0],[0,0],[0,0],[0,0],[0,0]],
+    E = [],
     
     lo = 0,
     hi = 1,
@@ -341,6 +356,35 @@ function sha3_keccakf(A) {
     
     // π (pi) step:
     /*
+    26 27 28 29 20 21 22 23 24 25
+    [3,2] [4,2] [0,2] [1,2] [2,2]
+    
+    16 17 18 19 10 11 12 13 14 15
+    [3,1] [4,1] [0,1] [1,1] [2,1]
+    
+     6 7   8 9   0 1   2 3   4 5
+    [3,0] [4,0] [0,0] [1,0] [2,0]
+    
+    46 47 48 49 40 41 42 43 44 45
+    [3,4] [4,4] [0,4] [1,4] [2,4]
+    
+    36 37 38 39 30 31 32 33 34 35
+    [3,3] [4,3] [0,3] [1,3] [2,3]
+    */
+    for (y=0; y<COLS_Y; y++) {
+      p = y * Y_OFFSET; // column
+      for (x=0; x<ROWS_X; x++) {
+        q = p + (x * 2); // low
+        r = q + 1; // high
+        s = pi_step[q];
+        t = s + 1;
+        //console.log("pi ["+x+","+y+"] from:", q, r, " to:", s, t);
+        E[s] = B[q];
+        E[t] = B[r];
+      }
+    }
+    console.log("After pi:", showState(E));
+    /*
     // χ (chi) step
     for (y=0; y<COLS_Y; y++) {
       p = y * Y_OFFSET; // column
@@ -361,9 +405,9 @@ function sha3_keccakf(A) {
         v = s + 1;
         w = t + 1;
         // lows
-        A[r] = B[r] ^ ((~B[s]) & B[t]);
+        A[r] = E[r] ^ ((~E[s]) & E[t]);
         // highs
-        A[u] = B[u] ^ ((~B[v]) & B[w]);
+        A[u] = E[u] ^ ((~E[v]) & E[w]);
       }
     }
     console.log("After chi:", showState(A));
