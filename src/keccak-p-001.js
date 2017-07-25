@@ -27,9 +27,9 @@ var
   BYTES_PER_ROW = COLS_Y * UINT64_BYTES,
   NUM_STATE_BYTES = ROWS_X * BYTES_PER_ROW,
   
-  NUM_STATE_32_BYTES = NUM_STATE_BYTES / UINT32_BYTES,
+  NUM_STATE_32_INTS = NUM_STATE_BYTES / UINT32_BYTES,
   
-  Y_OFFSET = NUM_STATE_32_BYTES / ROWS_X,
+  Y_OFFSET = NUM_STATE_32_INTS / ROWS_X,
   
   BIT_32_DIGITS = "00000000000000000000000000000000",
   getBit32digits = function(val) {
@@ -72,7 +72,7 @@ console.log("UINT64_BYTES", UINT64_BYTES);
 console.log("UINT32_BYTES", UINT32_BYTES);
 console.log("BYTES_PER_ROW", BYTES_PER_ROW);
 console.log("NUM_STATE_BYTES", NUM_STATE_BYTES);
-console.log("NUM_STATE_32_BYTES", NUM_STATE_32_BYTES);
+console.log("NUM_STATE_32_INTS", NUM_STATE_32_INTS);
 console.log("Y_OFFSET", Y_OFFSET);
 
 /*
@@ -186,37 +186,42 @@ var rhoOffset = [
 // x is uInt64 represented as x[uInt32lo, uInt32hi]
 function ROTL64(x, y) {
   
-  var which = y < 32 ? 1 : 0,
-    one = which ? y : y - 32, 
-    two = 32 - one,
-    hi, low, 
-    result = [];
-  
-  if (which) {
-    low = x[0];
-    hi = x[1];
+  if (y) {
+    var which = y < 32 ? 1 : 0,
+      one = which ? y : y - 32, 
+      two = 32 - one,
+      hi, low, 
+      result = [];
+    
+    if (which) {
+      low = x[0];
+      hi = x[1];
+    } else {
+      low = x[1];
+      hi = x[0];
+    }
+    
+    result[1] = (hi << one) | (low >>> two) & 0xFFFFFFFF;
+    result[0] = (low << one) | (hi >>> two) & 0xFFFFFFFF;
+    
+    return result;
   } else {
-    low = x[1];
-    hi = x[0];
+    return x;
   }
-  
-  result[1] = (hi << one) | (low >>> two);
-  result[0] = (low << one) | (hi >>> two);
-  
-  return result;
 }
 
-function test_ROTL64(lo, hi) {
+function test_ROTL64(lo, hi, num) {
   console.log("test_ROTL64");
   var 
-    result = ROTL64([lo,hi],1),
+    result = ROTL64([lo,hi],num),
     resLo = result[0],
     resHi = result[1];
     
   console.log("before", [getBit32digits(hi.toString(2)),getBit32digits(lo.toString(2))].join(""));
   console.log("after ", [getBit32digits(resHi.toString(2)),getBit32digits(resLo.toString(2))].join(""));
 }
-test_ROTL64(0x80008008,0x80000000);
+test_ROTL64(0x80008008,0x80000000,1);
+test_ROTL64(0x80008008,0x80000000,0);
 
 function showState(state) {
   var result = [CRLF],
@@ -224,7 +229,7 @@ function showState(state) {
     i,
     hi,lo,
     y = 0;
-  console.log("showState state.len = ", len);
+  //console.log("showState state.len = ", len);
   for (i=0; i<len; i+=2) {
     lo = getHex32digits(state[i].toString(16));
     hi = getHex32digits(state[i+1].toString(16));
@@ -239,10 +244,12 @@ function showState(state) {
 }
 
 function sha3_keccakf(A) {
+  
   console.log("sha3_keccakf");
   console.log("state["+A.length+"]", showState(A));
   
   var 
+    B = [],
     C = [[0,0],[0,0],[0,0],[0,0],[0,0]],
     D = [[0,0],[0,0],[0,0],[0,0],[0,0]],
     
@@ -304,19 +311,64 @@ function sha3_keccakf(A) {
       v = ROTL64(C[z],1);
       r = t[lo] = u[lo] ^ v[lo];
       p = t[hi] = u[hi] ^ v[hi];
-      
+      s = x * 2;
       for (y=0; y<COLS_Y; y++) {
         // A[x,y] = A[x,y] xor D[x]
-        //q = x + y * 10;
-        s = y * Y_OFFSET;
-        q = s + x * 2;
+        q = s + y * Y_OFFSET;
         A[q] ^= r;
         A[q+1] ^= p;
       }
     }
     console.log("After theta:", showState(A));
     
-    // 
+    // ρ (rho) step:
+    for (y=0; y<COLS_Y; y++) {
+      p = y * Y_OFFSET; // column
+      for (x=0; x<ROWS_X; x++) {
+        q = p + (x * 2); // low
+        r = q + 1; // high
+        s = A[q];
+        t = A[r];
+        u = y * ROWS_X;
+        v = u + x;
+        w = rhoOffset[v];
+        z = ROTL64([s,t],w);
+        B[q] = z[lo] >>> 0;
+        B[r] = z[hi] >>> 0;
+      }
+    }
+    console.log("After rho:", showState(B));
+    
+    // π (pi) step:
+    /*
+    // χ (chi) step
+    for (y=0; y<COLS_Y; y++) {
+      p = y * Y_OFFSET; // column
+      for (x=0; x<ROWS_X; x++) {
+        
+        //y=1,p=10,x=0,q=0,r=10,s=12,t=14
+        //y=1,p=10,x=1,q=2,r=12,s=14,t=16
+        //y=1,p=10,x=2,q=4,r=14,s=16,t=18
+        //y=1,p=10,x=3,q=6,r=16,s=18,t=10
+        //y=1,p=10,x=4,q=8,r=18,s=10,t=12
+        
+        // calc the indexes
+        r = p + (x * 2);
+        s = p + (((x + 1) % ROWS_X) * 2);
+        t = p + (((x + 2) % ROWS_X) * 2);
+        
+        u = r + 1;
+        v = s + 1;
+        w = t + 1;
+        // lows
+        A[r] = B[r] ^ ((~B[s]) & B[t]);
+        // highs
+        A[u] = B[u] ^ ((~B[v]) & B[w]);
+      }
+    }
+    console.log("After chi:", showState(A));
+    */
+    // ι (iota) step
     
   }
   
@@ -371,13 +423,11 @@ var keccak = {
         return instance;
       },
       "update": function(input) {
-        console.log("update", input.length);
-        
+        // accept string or array of bytes
         inputType = Array.isArray(input);
-        console.log("inputType", inputType ? "array" : "string");
-        
         len = input.length;
-        
+        console.log("update", inputType ? "array" : "string", len);
+
         var
           j,
           
