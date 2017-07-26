@@ -62,7 +62,7 @@ var
     "SHAKE-256":{}
   },
   KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES);
-
+/*
 console.log("KECCAK_ROUNDS", KECCAK_ROUNDS);
 console.log("ROWS_X", ROWS_X);
 console.log("COLS_Y", COLS_Y);
@@ -74,7 +74,7 @@ console.log("BYTES_PER_ROW", BYTES_PER_ROW);
 console.log("NUM_STATE_BYTES", NUM_STATE_BYTES);
 console.log("NUM_STATE_32_INTS", NUM_STATE_32_INTS);
 console.log("Y_OFFSET", Y_OFFSET);
-
+*/
 /*
 +++ The round constants +++
 
@@ -234,8 +234,8 @@ function test_ROTL64(lo, hi, num) {
   console.log("     after ", bit64(result[0], result[1]));
   console.log(" ");
 }
-test_ROTL64(0x80008008,0x80000000,0);
-test_ROTL64(0x80008008,0x80000000,1);
+//test_ROTL64(0x80008008,0x80000000,0);
+//test_ROTL64(0x80008008,0x80000000,1);
 
 function showState(state) {
   var result = [CRLF],
@@ -257,10 +257,32 @@ function showState(state) {
   return result.join(" ");
 }
 
+function show_array(vals, width) {
+  var len = vals.length,
+    idx = -1,
+    tmp = [],
+    more,
+    what;
+  console.log("show_array", len, "@", width);
+  while (++idx < len) {
+    if (tmp.length === width) {
+      more = idx < len ? "," : "";
+      console.log(tmp.join(", ") + more);
+      tmp = [];
+    }
+    tmp.push(
+      vals[idx]
+    );
+  }
+  if (tmp.length > 0) {
+    console.log(tmp.join(", "));
+  }
+}
+
 function sha3_keccakf(A) {
   
-  console.log("sha3_keccakf");
-  console.log("state["+A.length+"]", showState(A));
+  //console.log("sha3_keccakf");
+  //console.log("state["+A.length+"]", showState(A));
   
   var 
     B = [],
@@ -273,20 +295,7 @@ function sha3_keccakf(A) {
     
     i,
     
-    p,
-    q,
-    r,
-    s,
-    t,
-    u,
-    v,
-    w,
-    x,
-    y,
-    z,
-    
-    
-    what;
+    p,q,r,s,t,u,v,w,x,y,z;
   
   for (i=0; i<KECCAK_ROUNDS; i++) {
     
@@ -334,7 +343,7 @@ function sha3_keccakf(A) {
         A[q+1] ^= p;
       }
     }
-    console.log("After theta:", showState(A));
+    //console.log(i + " After theta:", showState(A));
     
     // ρ (rho) step:
     for (y=0; y<COLS_Y; y++) {
@@ -352,7 +361,7 @@ function sha3_keccakf(A) {
         B[r] = z[hi] >>> 0;
       }
     }
-    console.log("After rho:", showState(B));
+    //console.log(i + " After rho:", showState(B));
     
     // π (pi) step:
     /*
@@ -383,7 +392,7 @@ function sha3_keccakf(A) {
         E[t] = B[r];
       }
     }
-    console.log("After pi:", showState(E));
+    //console.log(i + " After pi:", showState(E));
     
     // χ (chi) step
     for (y=0; y<COLS_Y; y++) {
@@ -410,13 +419,13 @@ function sha3_keccakf(A) {
         A[u] = E[u] ^ ((~E[v]) & E[w]);
       }
     }
-    console.log("After chi:", showState(A));
+    //console.log(i + " After chi:", showState(A));
     
     // ι (iota) step
     p = iota_const[i];
     A[0] ^= p[lo];
     A[1] ^= p[hi];
-    console.log("After iota:", showState(A));
+    //console.log(i + " After iota:", showState(A));
   }
   
 }
@@ -437,14 +446,13 @@ var keccak = {
       state, 
       uInt8state, 
       uInt32state,
-      mdlen, 
       rsiz, 
       pt,
       len,
       inputType,
       i;
     
-    console.log("mode", mode, "modeBits", modeBits, "modeBytes", modeBytes);
+    //console.log("mode", mode, "modeBits", modeBits, "modeBytes", modeBytes);
     
     var instance = {
       "init": function() {
@@ -458,23 +466,46 @@ var keccak = {
         // 2nd, a 32 bit unsigned integer view, see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array
         uInt32state = new Uint32Array(state);
         // length of digest requested
-        mdlen = modeBits / 4;
-        // bytes of ?
-        //rsiz = NUM_STATE_BYTES - 2 * mdlen;
-        rsiz = NUM_STATE_BYTES;
+        //mdlen = modeBits / 4;
+        // bytes of size for sponge function?
+        rsiz = NUM_STATE_BYTES - 2 * modeBytes;
+        //rsiz = NUM_STATE_BYTES;
         // byte pointer
         pt = 0;
         
-        console.log("init mode", mode, "mdlen", mdlen, "rsiz", rsiz, "pt", pt);
+        //console.log("init mode", mode, "modeBytes", modeBytes, "rsiz", rsiz);
         
         return instance;
       },
       "update": function(input) {
         // accept string or array of bytes
-        inputType = Array.isArray(input);
+        //console.log(typeof input);
+        switch (typeof input) {
+          case "string":
+            inputType = 0;
+            break;
+          default:
+            switch (typeof input[0]) {
+              case "number":
+                inputType = 1;
+                break;
+              case "string":
+                inputType = 2;
+                break;
+              default:
+                throw new Error("update accepts string 'abc', array decimal [97,98,99], array hex [0x61,0x62,0x63] or ['61','62','63'] only!");
+                break;
+            }
+            break;
+        }
+        //inputType = Array.isArray(input);
         len = input.length;
-        console.log("update", inputType ? "array" : "string", len);
-
+        //console.log("update", inputType ? "array" : "string", len);
+        
+        //if (inputType) {
+        //  show_array(input, 16);
+        //}
+        
         var
           j,
           
@@ -487,7 +518,20 @@ var keccak = {
         j = pt;
         for (i = 0; i < len; i++) {
           a = input[i];
-          b = inputType ? parseInt(a, 16) : a.charCodeAt();
+          switch (inputType) {
+            case 0:
+              b = a.charCodeAt();
+              break;
+            case 1:
+              b = a;
+              break;
+            case 2:
+              b = parseInt(a, 16);
+              break;
+            default:
+              throw new Error("update unknown inputType: " + inputType);
+              break;
+          } 
           /*
           c = b.toString(2);
           d = c.length;
@@ -508,22 +552,21 @@ var keccak = {
         return instance;
       },
       "digest": function() {
-        console.log("digest", pt, rsiz);
+        //console.log("digest", pt, rsiz);
         
         var hash = [],
           tmp;
-        /*
+        
         uInt8state[pt] ^= 0x06;
         uInt8state[rsiz - 1] ^= 0x80;
         
         sha3_keccakf(uInt32state);
 
-        for (i = 0; i < mdlen; i++) {
+        for (i = 0; i < modeBytes; i++) {
           tmp = uInt8state[i].toString(16);
           len = tmp.length;
           hash[i] = "00".substr(len) + tmp;
         }
-*/
 
         return hash.join("");
       }
