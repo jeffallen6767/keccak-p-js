@@ -1,7 +1,11 @@
+// test keccak modes
 var keccak = require("./index"),
   tester = require("testing"),
   data = {
     "modes": {
+      "SHA-3-224":[
+      
+      ],
       "SHA-3-256": [
         [ // empty msg
           "", 
@@ -68,7 +72,11 @@ var keccak = require("./index"),
           ],
           "aa45fbc5788aacbcb5aecb8ac032a90baf1d7d4cb509e9b9960b601c1b9eaefe"
         ]
-      ]
+      ],
+      "SHA-3-384":[], 
+      "SHA-3-512":[],
+      "SHAKE-128":[],
+      "SHAKE-256":[]
     }
   },
   modes = data.modes,
@@ -79,45 +87,45 @@ var keccak = require("./index"),
 
 // make tests
 keys.forEach(function(key) {
-  var mode = keccak.mode(key),
+  var
     todo = modes[key],
-    testKey = "sync test keccak.mode(" + key + ")";
+    syncKey = "sync test keccak.mode(" + key + ")",
+    asyncKey = "async test keccak.mode(" + key + ")";
   
-  tests[testKey] = function(test) {
+  tests[syncKey] = function(test) {
     todo.forEach(function(pair) {
       test.startTime();
-      var result = mode.init().update(pair[0]).digest();
+      var result = keccak.mode(key).init().update(pair[0]).digest();
       test.endTime();
       test.assert.identical(result, pair[1]);
     });
     test.done();
   };
+  tests[asyncKey] = function(test) {
+    var num = todo.length,
+      done = 0;
+    if (num) {
+      todo.forEach(function(pair) {
+        test.startTime();
+        keccak.mode(key, function(instance) {
+          instance.init(function(instance) {
+            instance.update(pair[0], function(instance) {
+              instance.digest(function(result) {
+                test.endTime();
+                test.assert.identical(result, pair[1]);
+                if (++done === num) {
+                  test.done();
+                }
+              });
+            });
+          });
+        })
+      });
+    } else {
+      test.done();
+    }
+  };
 });
 
 // run tests
 tester.run(tests);
-
-/*
-blah = {
-    "sync test keccak.modes": function(test) {
-      var ;
-      modes.forEach(function(key) {
-        
-        
-      });
-      
-    },
-
-    "async test keccak.hash.sha256()": function(test) {
-      data.sha256.forEach(function(pair) {
-        test.startTime();
-        keccak.hash.sha256(pair[0], function(result) {
-          test.endTime();
-          test.assert.identical(result, pair[1]);
-        });
-      });
-      test.done();
-    }
-   
-  }
-  */

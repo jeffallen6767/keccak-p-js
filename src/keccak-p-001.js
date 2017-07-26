@@ -81,124 +81,44 @@ var iota_const = [
 ];
 
 // +++ The rho offsets +++
+// number of positions to bitwise-rotate-left the uInt64 @ [x,y]
 var rho_offset = [
-  0, 1, 62, 28, 27, 
-  36, 44, 6, 55, 20,
-  3, 10, 43, 25, 39,
-  41, 45, 15, 21, 8,
-  18, 2, 61, 56, 14
+  0, 1, 62, 28, 27,  // y=0, x=0..4
+  36, 44, 6, 55, 20, // y=1, x=0..4
+  3, 10, 43, 25, 39, // y=2, x=0..4
+  41, 45, 15, 21, 8, // y=3, x=0..4
+  18, 2, 61, 56, 14  // y=4, x=0..4
 ];
 
 // +++ The pi offsets +++
+// uInt64[lo,hi] @ [x,y] moves to new position
 var pi_offset = [
-  0,1, 20,21, 40,41, 10,11, 30,31,
-  32,33, 2,3, 22,23, 42,43, 12,13,
-  14,15, 34,35, 4,5, 24,25, 44,45,
-  46,47, 16,17, 36,37, 6,7, 26,27,
-  28,29, 48,49, 18,19, 38,39, 8,9
+  0,1, 20,21, 40,41, 10,11, 30,31, // y=0, x=0..4
+  32,33, 2,3, 22,23, 42,43, 12,13, // y=1, x=0..4
+  14,15, 34,35, 4,5, 24,25, 44,45, // y=2, x=0..4
+  46,47, 16,17, 36,37, 6,7, 26,27, // y=3, x=0..4
+  28,29, 48,49, 18,19, 38,39, 8,9  // y=4, x=0..4
 ];
 
-function padDigits(val, mask) {
-  var 
-    maskLen = mask.length,
-    len = val.toString().length,
-    pad = maskLen > len;
-  return pad ? mask.substr(len) + val : val;
-}
-
-function getHex32digits(val) {
-  return padDigits(val, "00000000");
-}
-
-function getBit32digits(val) {
-  return padDigits(val, "00000000000000000000000000000000");
-}
-
-function bits(val) {
-  return getBit32digits(val.toString(2));
-}
-
-function bit64(lo, hi) {
-  return [bits(hi),bits(lo)].join("");
-}
-
-// uInt64 as uInt32lo, uInt32hi
+// bitwise-rotate-left rot positions a uInt64 as uInt32lo, uInt32hi
 function ROTL64(lo, hi, rot) {
-  
   if (rot < 1) {
     return [lo, hi];
   }
-  
   var 
     which = rot < 32 ? 1 : 0,
     one = which ? rot : rot - 32, 
     two = 32 - one,
     tmp;
-
   if (!which) {
     tmp = lo;
     lo = hi;
     hi = tmp;
   }
-
   return [lo << one | hi >>> two, hi << one | lo >>> two];
 }
 
-// <------------------------------------------------------------- YOU ARE HERE
-
-function test_ROTL64(lo, hi, num) {
-  console.log(" ");
-  console.log("test_ROTL64["+num+"]");
-  var result = ROTL64(lo, hi, num);
-  console.log("     before", bit64(lo, hi));
-  console.log("     after ", bit64(result[0], result[1]));
-  console.log(" ");
-}
-//test_ROTL64(0x80008008,0x80000000,0);
-//test_ROTL64(0x80008008,0x80000000,1);
-
-function showState(state) {
-  var 
-    CRLF = "\n",
-    result = [CRLF],
-    len = state.length,
-    i, hi,lo,
-    y = 0;
-  //console.log("showState state.len = ", len);
-  for (i=0; i<len; i+=2) {
-    lo = getHex32digits(state[i].toString(16));
-    hi = getHex32digits(state[i+1].toString(16));
-    result.push([hi,lo].join("").toUpperCase());
-    if (++y > 4) {
-      y = 0;
-      result.push(CRLF);
-    }
-  }
-  return result.join(" ");
-}
-
-function show_array(vals, width) {
-  var len = vals.length,
-    idx = -1,
-    tmp = [],
-    more,
-    what;
-  console.log("show_array", len, "@", width);
-  while (++idx < len) {
-    if (tmp.length === width) {
-      more = idx < len ? "," : "";
-      console.log(tmp.join(", ") + more);
-      tmp = [];
-    }
-    tmp.push(
-      '"'+vals[idx]+'"'
-    );
-  }
-  if (tmp.length > 0) {
-    console.log(tmp.join(", "));
-  }
-}
-
+// the permutation function
 function sha3_keccakf(A) {
   
   //console.log("sha3_keccakf");
@@ -219,7 +139,6 @@ function sha3_keccakf(A) {
   
   for (i=0; i<KECCAK_ROUNDS; i++) {
     
-    
     /* x,y maps to A[0..49], A[0] = int32high, A[1] = int32low of [x0,y0]
       0  1    2  3    4  5    6  7    8  9
     [x0,y0],[x1,y0],[x2,y0],[x3,y0],[x4,y0]
@@ -232,6 +151,7 @@ function sha3_keccakf(A) {
      40 41   42 43   44 45   46 47   48 49
     [x0,y4],[x1,y4],[x2,y4],[x3,y4],[x4,y4]
     */
+    
     // θ (theta) step
     for (x=0; x<ROWS_X; x++) {
       // C[x] = A[x,0] xor A[x,1] xor A[x,2] xor A[x,3] xor A[x,4]
@@ -348,11 +268,11 @@ function sha3_keccakf(A) {
     A[1] ^= p[hi];
     //console.log(i + " After iota:", showState(A));
   }
-  
 }
 
+// the keccak constructor for all modes
 var keccak = {
-  "mode": function(mode) {
+  "mode": function(mode, optionalCallback) {
     
     if (KECCAK_MODE_KEYS.indexOf(mode) === -1) {
       throw new Error("Keccak.mode requires one of: " + KECCAK_MODE_KEYS.join());
@@ -362,43 +282,51 @@ var keccak = {
       parts = mode.split("-"),
       
       modeBits = parts[parts.length-1] - 0,
+      
+      // length of digest requested
       modeBytes = modeBits / BITS_IN_BYTE,
       
       state, 
       uInt8state, 
       uInt32state,
-      rsiz, 
+      
+      // bytes of size for sponge function?
+      rsiz = NUM_STATE_BYTES - 2 * modeBytes, 
+      
       pt,
       len,
       inputType,
-      i;
+      i,
+      // called async?
+      async = typeof optionalCallback === "function";
     
     //console.log("mode", mode, "modeBits", modeBits, "modeBytes", modeBytes);
     
+    // create an instance of the mode
     var instance = {
-      "init": function() {
+      
+      // init resets everything for a new run
+      "init": function(optionalCallback) {
         // A new ArrayBuffer object of size, in bytes, of the array buffer to create.. Its contents are initialized to 0.
         // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
-        // 64 bits * 25 = 1600 bits
         state = new ArrayBuffer(NUM_STATE_BYTES);
         // create 2 views of the bits, see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
         // 1st, a 8 bit unsigned integer view, see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
         uInt8state = new Uint8Array(state);
         // 2nd, a 32 bit unsigned integer view, see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array
         uInt32state = new Uint32Array(state);
-        // length of digest requested
-        //mdlen = modeBits / 4;
-        // bytes of size for sponge function?
-        rsiz = NUM_STATE_BYTES - 2 * modeBytes;
-        //rsiz = NUM_STATE_BYTES;
-        // byte pointer
+        // current byte pointer
         pt = 0;
+        // called async?
+        async = typeof optionalCallback === "function";
         
         //console.log("init mode", mode, "modeBytes", modeBytes, "rsiz", rsiz);
         
-        return instance;
+        return async ? optionalCallback(instance) : instance;
       },
-      "update": function(input) {
+      
+      // update can be called multiple times
+      "update": function(input, optionalCallback) {
         // accept string or array of bytes
         //console.log(typeof input);
         switch (typeof input) {
@@ -414,12 +342,18 @@ var keccak = {
                 inputType = 2;
                 break;
               default:
-                throw new Error("update accepts string 'abc', array decimal [97,98,99], array hex [0x61,0x62,0x63] or ['61','62','63'] only!");
+                throw new Error([
+                  "update accepts string 'abc'",
+                  "array decimal [97,98,99]",
+                  "array hex [0x61,0x62,0x63]",
+                  "array octal [0237, 057, 0314]",
+                  "array string hex ['61','62','63'] only!"
+                ].join(", "));
                 break;
             }
             break;
         }
-        //inputType = Array.isArray(input);
+        
         len = input.length;
         //console.log("update", inputType ? "array" : "string", len);
         
@@ -432,9 +366,9 @@ var keccak = {
           
           a,b,c,d,e,f,g,
           
-          hi, lo,
+          hi, lo, hex,
           
-          hex;
+          async = typeof optionalCallback === "function";
         
         j = pt;
         for (i = 0; i < len; i++) {
@@ -470,13 +404,17 @@ var keccak = {
         }
         pt = j;
 
-        return instance;
+        return async ? optionalCallback(instance) : instance;
       },
-      "digest": function() {
+      
+      // digest is called at the end to return the hash of input
+      "digest": function(optionalCallback) {
         //console.log("digest", pt, rsiz);
         
-        var hash = [],
-          tmp;
+        var 
+          hash = [],
+          tmp,
+          async = typeof optionalCallback === "function";
         
         uInt8state[pt] ^= 0x06;
         uInt8state[rsiz - 1] ^= 0x80;
@@ -488,12 +426,93 @@ var keccak = {
           len = tmp.length;
           hash[i] = "00".substr(len) + tmp;
         }
-
-        return hash.join("");
+        
+        tmp = hash.join("");
+        
+        return async ? optionalCallback(tmp) : tmp;
       }
     };
-    return instance;
+    return async ? optionalCallback(instance) : instance;
   }
 };
 
 module.exports = keccak;
+
+//////////////// debugging tools ////////////////
+
+function padDigits(val, mask) {
+  var 
+    maskLen = mask.length,
+    len = val.toString().length,
+    pad = maskLen > len;
+  return pad ? mask.substr(len) + val : val;
+}
+
+function getHex32digits(val) {
+  return padDigits(val, "00000000");
+}
+
+function getBit32digits(val) {
+  return padDigits(val, "00000000000000000000000000000000");
+}
+
+function bits(val) {
+  return getBit32digits(val.toString(2));
+}
+
+function bit64(lo, hi) {
+  return [bits(hi),bits(lo)].join("");
+}
+
+function test_ROTL64(lo, hi, num) {
+  console.log(" ");
+  console.log("test_ROTL64["+num+"]");
+  var result = ROTL64(lo, hi, num);
+  console.log("     before", bit64(lo, hi));
+  console.log("     after ", bit64(result[0], result[1]));
+  console.log(" ");
+}
+//test_ROTL64(0x80008008,0x80000000,0);
+//test_ROTL64(0x80008008,0x80000000,1);
+
+function showState(state) {
+  var 
+    CRLF = "\n",
+    result = [CRLF],
+    len = state.length,
+    i, hi,lo,
+    y = 0;
+  //console.log("showState state.len = ", len);
+  for (i=0; i<len; i+=2) {
+    lo = getHex32digits(state[i].toString(16));
+    hi = getHex32digits(state[i+1].toString(16));
+    result.push([hi,lo].join("").toUpperCase());
+    if (++y > 4) {
+      y = 0;
+      result.push(CRLF);
+    }
+  }
+  return result.join(" ");
+}
+
+function show_array(vals, width) {
+  var len = vals.length,
+    idx = -1,
+    tmp = [],
+    more,
+    what;
+  console.log("show_array", len, "@", width);
+  while (++idx < len) {
+    if (tmp.length === width) {
+      more = idx < len ? "," : "";
+      console.log(tmp.join(", ") + more);
+      tmp = [];
+    }
+    tmp.push(
+      '"'+vals[idx]+'"'
+    );
+  }
+  if (tmp.length > 0) {
+    console.log(tmp.join(", "));
+  }
+}
