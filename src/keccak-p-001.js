@@ -271,7 +271,7 @@ function show_array(vals, width) {
       tmp = [];
     }
     tmp.push(
-      vals[idx]
+      '"'+vals[idx]+'"'
     );
   }
   if (tmp.length > 0) {
