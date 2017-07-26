@@ -8,10 +8,6 @@ so we represent them as [uInt32low, uInt32high]
 
 */
 
-/*
-b = [25, 50, 100, 200, 400, 800, 1600],
-  w = [1, 2, 4, 8, 16, 32, 64],
-*/
 var 
   KECCAK_ROUNDS = 24,
   
@@ -31,28 +27,6 @@ var
   
   Y_OFFSET = NUM_STATE_32_INTS / ROWS_X,
   
-  BIT_32_DIGITS = "00000000000000000000000000000000",
-  getBit32digits = function(val) {
-    var len = val.toString().length;
-    return BIT_32_DIGITS.substr(len) + val;
-  },
-  HEX_32_DIGITS = "00000000",
-  getHex32digits = function(val) {
-    var len = val.toString().length;
-    return HEX_32_DIGITS.substr(len) + val;
-  },
-  INT_32_DIGITS = "0000000000",
-  getInt32digits = function(val) {
-    var len = val.toString().length;
-    return INT_32_DIGITS.substr(len) + val;
-  },
-  
-  BYTE_MULT_32_1 = 16777216,
-  BYTE_MULT_32_2 = 65536,
-  BYTE_MULT_32_3 = 256,
-  
-  CRLF = "\n",
-  
   KECCAK_MODES = {
     "SHA-3-224":{}, 
     "SHA-3-256":{}, 
@@ -62,6 +36,7 @@ var
     "SHAKE-256":{}
   },
   KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES);
+
 /*
 console.log("KECCAK_ROUNDS", KECCAK_ROUNDS);
 console.log("ROWS_X", ROWS_X);
@@ -75,107 +50,38 @@ console.log("NUM_STATE_BYTES", NUM_STATE_BYTES);
 console.log("NUM_STATE_32_INTS", NUM_STATE_32_INTS);
 console.log("Y_OFFSET", Y_OFFSET);
 */
-/*
-+++ The round constants +++
 
-RC[00][0][0] = 0000000000000001
-RC[01][0][0] = 0000000000008082
-RC[02][0][0] = 800000000000808A
-RC[03][0][0] = 8000000080008000
-RC[04][0][0] = 000000000000808B
-RC[05][0][0] = 0000000080000001
-RC[06][0][0] = 8000000080008081
-RC[07][0][0] = 8000000000008009
-RC[08][0][0] = 000000000000008A
-RC[09][0][0] = 0000000000000088
-RC[10][0][0] = 0000000080008009
-RC[11][0][0] = 000000008000000A
-RC[12][0][0] = 000000008000808B
-RC[13][0][0] = 800000000000008B
-RC[14][0][0] = 8000000000008089
-RC[15][0][0] = 8000000000008003
-RC[16][0][0] = 8000000000008002
-RC[17][0][0] = 8000000000000080
-RC[18][0][0] = 000000000000800A
-RC[19][0][0] = 800000008000000A
-RC[20][0][0] = 8000000080008081
-RC[21][0][0] = 8000000000008080
-RC[22][0][0] = 0000000080000001
-RC[23][0][0] = 8000000080008008
-
-*/
-// uInt64 represented as x[uInt32lo, uInt32hi]
+// +++ The round constants +++
+// uInt64 as x[uInt32lo, uInt32hi]
 var iota_const = [
-  [0x00000001,0x00000000], 
-  [0x00008082,0x00000000], 
-  [0x0000808a,0x80000000],
-  [0x80008000,0x80000000], 
-  [0x0000808b,0x00000000], 
-  [0x80000001,0x00000000],
-  [0x80008081,0x80000000], 
-  [0x00008009,0x80000000], 
-  [0x0000008a,0x00000000],
-  [0x00000088,0x00000000], 
-  [0x80008009,0x00000000], 
-  [0x8000000a,0x00000000],
-  [0x8000808b,0x00000000], 
-  [0x0000008b,0x80000000], 
-  [0x00008089,0x80000000],
-  [0x00008003,0x80000000], 
-  [0x00008002,0x80000000], 
-  [0x00000080,0x80000000],
-  [0x0000800a,0x00000000], 
-  [0x8000000a,0x80000000], 
-  [0x80008081,0x80000000],
-  [0x00008080,0x80000000], 
-  [0x80000001,0x00000000], 
-  [0x80008008,0x80000000]
+  [0x00000001,0x00000000], // 0x0000000000000001
+  [0x00008082,0x00000000], // 0x0000000000008082
+  [0x0000808a,0x80000000], // 0x800000000000808A
+  [0x80008000,0x80000000], // 0x8000000080008000
+  [0x0000808b,0x00000000], // 0x000000000000808B
+  [0x80000001,0x00000000], // 0x0000000080000001
+  [0x80008081,0x80000000], // 0x8000000080008081
+  [0x00008009,0x80000000], // 0x8000000000008009
+  [0x0000008a,0x00000000], // 0x000000000000008A
+  [0x00000088,0x00000000], // 0x0000000000000088
+  [0x80008009,0x00000000], // 0x0000000080008009
+  [0x8000000a,0x00000000], // 0x000000008000000A
+  [0x8000808b,0x00000000], // 0x000000008000808B
+  [0x0000008b,0x80000000], // 0x800000000000008B
+  [0x00008089,0x80000000], // 0x8000000000008089
+  [0x00008003,0x80000000], // 0x8000000000008003
+  [0x00008002,0x80000000], // 0x8000000000008002
+  [0x00000080,0x80000000], // 0x8000000000000080
+  [0x0000800a,0x00000000], // 0x000000000000800A
+  [0x8000000a,0x80000000], // 0x800000008000000A
+  [0x80008081,0x80000000], // 0x8000000080008081
+  [0x00008080,0x80000000], // 0x8000000000008080
+  [0x80000001,0x00000000], // 0x0000000080000001
+  [0x80008008,0x80000000]  // 0x8000000080008008
 ];
 
-//console.log("rndc", rndc);
-/*
-var rotc = [
-  1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,
-  27, 41, 56, 8,  25, 43, 62, 18, 39, 61, 20, 44
-];
-
-var piln = [
-  10, 7,  11, 17, 18, 3, 5,  16, 8,  21, 24, 4,
-  15, 23, 19, 13, 12, 2, 20, 14, 22, 9,  6,  1
-];
-*/
-
-/*
-+++ The rho offsets +++
-
-RhoOffset[0][0] =  0
-RhoOffset[1][0] =  1
-RhoOffset[2][0] = 62
-RhoOffset[3][0] = 28
-RhoOffset[4][0] = 27
-RhoOffset[0][1] = 36
-RhoOffset[1][1] = 44
-RhoOffset[2][1] =  6
-RhoOffset[3][1] = 55
-RhoOffset[4][1] = 20
-RhoOffset[0][2] =  3
-RhoOffset[1][2] = 10
-RhoOffset[2][2] = 43
-RhoOffset[3][2] = 25
-RhoOffset[4][2] = 39
-RhoOffset[0][3] = 41
-RhoOffset[1][3] = 45
-RhoOffset[2][3] = 15
-RhoOffset[3][3] = 21
-RhoOffset[4][3] =  8
-RhoOffset[0][4] = 18
-RhoOffset[1][4] =  2
-RhoOffset[2][4] = 61
-RhoOffset[3][4] = 56
-RhoOffset[4][4] = 14
-*/
-
-var rhoOffset = [
+// +++ The rho offsets +++
+var rho_offset = [
   0, 1, 62, 28, 27, 
   36, 44, 6, 55, 20,
   3, 10, 43, 25, 39,
@@ -183,14 +89,31 @@ var rhoOffset = [
   18, 2, 61, 56, 14
 ];
 
-var pi_step = [
+// +++ The pi offsets +++
+var pi_offset = [
   0,1, 20,21, 40,41, 10,11, 30,31,
   32,33, 2,3, 22,23, 42,43, 12,13,
   14,15, 34,35, 4,5, 24,25, 44,45,
   46,47, 16,17, 36,37, 6,7, 26,27,
   28,29, 48,49, 18,19, 38,39, 8,9
 ];
-    
+
+function padDigits(val, mask) {
+  var 
+    maskLen = mask.length,
+    len = val.toString().length,
+    pad = maskLen > len;
+  return pad ? mask.substr(len) + val : val;
+}
+
+function getHex32digits(val) {
+  return padDigits(val, "00000000");
+}
+
+function getBit32digits(val) {
+  return padDigits(val, "00000000000000000000000000000000");
+}
+
 function bits(val) {
   return getBit32digits(val.toString(2));
 }
@@ -199,37 +122,34 @@ function bit64(lo, hi) {
   return [bits(hi),bits(lo)].join("");
 }
 
-// x is uInt64 represented as x[uInt32lo, uInt32hi]
-function ROTL64(x, y) {
+// uInt64 as uInt32lo, uInt32hi
+function ROTL64(lo, hi, rot) {
   
-  if (y) {
-    var which = y < 32 ? 1 : 0,
-      one = which ? y : y - 32, 
-      two = 32 - one,
-      hi, low, 
-      result = [];
-    
-    if (which) {
-      low = x[0];
-      hi = x[1];
-    } else {
-      low = x[1];
-      hi = x[0];
-    }
-    
-    result[1] = (hi << one) | (low >>> two) & 0xFFFFFFFF;
-    result[0] = (low << one) | (hi >>> two) & 0xFFFFFFFF;
-    
-    return result;
-  } else {
-    return x;
+  if (rot < 1) {
+    return [lo, hi];
   }
+  
+  var 
+    which = rot < 32 ? 1 : 0,
+    one = which ? rot : rot - 32, 
+    two = 32 - one,
+    tmp;
+
+  if (!which) {
+    tmp = lo;
+    lo = hi;
+    hi = tmp;
+  }
+
+  return [lo << one | hi >>> two, hi << one | lo >>> two];
 }
+
+// <------------------------------------------------------------- YOU ARE HERE
 
 function test_ROTL64(lo, hi, num) {
   console.log(" ");
   console.log("test_ROTL64["+num+"]");
-  var result = ROTL64([lo,hi],num);
+  var result = ROTL64(lo, hi, num);
   console.log("     before", bit64(lo, hi));
   console.log("     after ", bit64(result[0], result[1]));
   console.log(" ");
@@ -238,10 +158,11 @@ function test_ROTL64(lo, hi, num) {
 //test_ROTL64(0x80008008,0x80000000,1);
 
 function showState(state) {
-  var result = [CRLF],
+  var 
+    CRLF = "\n",
+    result = [CRLF],
     len = state.length,
-    i,
-    hi,lo,
+    i, hi,lo,
     y = 0;
   //console.log("showState state.len = ", len);
   for (i=0; i<len; i+=2) {
@@ -253,7 +174,6 @@ function showState(state) {
       result.push(CRLF);
     }
   }
-  
   return result.join(" ");
 }
 
@@ -293,7 +213,7 @@ function sha3_keccakf(A) {
     lo = 0,
     hi = 1,
     
-    i,
+    i,k,
     
     p,q,r,s,t,u,v,w,x,y,z;
   
@@ -332,7 +252,8 @@ function sha3_keccakf(A) {
       z = (x + 1) % ROWS_X;
       t = D[x];
       u = C[w];
-      v = ROTL64(C[z],1);
+      k = C[z];
+      v = ROTL64(k[lo], k[hi], 1);
       r = t[lo] = u[lo] ^ v[lo];
       p = t[hi] = u[hi] ^ v[hi];
       s = x * 2;
@@ -355,8 +276,8 @@ function sha3_keccakf(A) {
         t = A[r];
         u = y * ROWS_X;
         v = u + x;
-        w = rhoOffset[v];
-        z = ROTL64([s,t],w);
+        w = rho_offset[v];
+        z = ROTL64(s, t, w);
         B[q] = z[lo] >>> 0;
         B[r] = z[hi] >>> 0;
       }
@@ -385,7 +306,7 @@ function sha3_keccakf(A) {
       for (x=0; x<ROWS_X; x++) {
         q = p + (x * 2); // low
         r = q + 1; // high
-        s = pi_step[q];
+        s = pi_offset[q];
         t = s + 1;
         //console.log("pi ["+x+","+y+"] from:", q, r, " to:", s, t);
         E[s] = B[q];
