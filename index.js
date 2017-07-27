@@ -1,1 +1,1 @@
-module.exports = require("./src/keccak-p-001");
+module.exports = require("./src/keccak");
