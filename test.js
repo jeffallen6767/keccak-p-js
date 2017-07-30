@@ -22,7 +22,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a6",
           "15b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26"
-        )
+        ),
+        "SHAKE-128": "43e41b45a653f2a5c4492c1add544512dda2529833462b71a41a45be97290b6f",
+        "SHAKE-256": "ab0bae316339894304e35877b0c28a9b1fd166c796b9cc258a064a8f57e27f2a"
       }
     },
     "short message": {
@@ -37,7 +39,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e",
           "10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0"
-        )
+        ),
+        "SHAKE-128": "7085901803ec6f17f0ec650a292198275211a56bf13f0bf7241268b50d3f1ec8",
+        "SHAKE-256": "9440b99d6088e20203aebafa8e9dffa94ed35ef1f41f5fdf549fbcc5a0f68298"
       }
     },
     "short message bytes": {
@@ -52,7 +56,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "b087c90421aebf87911647de9d465cbda166b672ec47ccd4054a7135a1ef885e",
           "7903b52c3f2c3fe722b1c169297a91b82428956a02c631a2240f12162c7bc726"
-        )
+        ),
+        "SHAKE-128": "81ab314a524fc745090162d2ac723c4326e0f9e16fbdba2b1e9914bbeedff96b",
+        "SHAKE-256": "9d6307973ed19b270247867e5861172467821a22872e52657ba2ffddf6052025"
       }
     },
     "array of decimal": {
@@ -70,7 +76,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "b087c90421aebf87911647de9d465cbda166b672ec47ccd4054a7135a1ef885e",
           "7903b52c3f2c3fe722b1c169297a91b82428956a02c631a2240f12162c7bc726"
-        )
+        ),
+        "SHAKE-128": "81ab314a524fc745090162d2ac723c4326e0f9e16fbdba2b1e9914bbeedff96b",
+        "SHAKE-256": "9d6307973ed19b270247867e5861172467821a22872e52657ba2ffddf6052025"
       }
     },
     "array of octal": {
@@ -88,7 +96,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "b087c90421aebf87911647de9d465cbda166b672ec47ccd4054a7135a1ef885e",
           "7903b52c3f2c3fe722b1c169297a91b82428956a02c631a2240f12162c7bc726"
-        )
+        ),
+        "SHAKE-128": "81ab314a524fc745090162d2ac723c4326e0f9e16fbdba2b1e9914bbeedff96b",
+        "SHAKE-256": "9d6307973ed19b270247867e5861172467821a22872e52657ba2ffddf6052025"
       }
     },
     "array of hex": {
@@ -106,7 +116,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "b087c90421aebf87911647de9d465cbda166b672ec47ccd4054a7135a1ef885e",
           "7903b52c3f2c3fe722b1c169297a91b82428956a02c631a2240f12162c7bc726"
-        )
+        ),
+        "SHAKE-128": "81ab314a524fc745090162d2ac723c4326e0f9e16fbdba2b1e9914bbeedff96b",
+        "SHAKE-256": "9d6307973ed19b270247867e5861172467821a22872e52657ba2ffddf6052025"
       }
     },
     "multi-block array of zeros": {
@@ -135,7 +147,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "fee1198b89e041af5a26a217e4217a66c628c78d11c1fbb482b3643153f3cf0c",
           "04ae421c7e530e19584a494c1f3bd4713ca169a98b937ddf0b9d4d09fadecde9"
-        )
+        ),
+        "SHAKE-128": "9d8fc11caae22ddb535db0aef3cb3ac1594fe634b2b166e8eaee591bd98ba81f",
+        "SHAKE-256": "d2fed140e71dde696f84aaf4d6cedea28e83ecb1b7e6987f2030efd7ea0637db"
       }
     },
     "multi-block array of string hex bytes": {
@@ -164,7 +178,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "969772f6836db4fc32df06647b6234adaa797c303b5accbc2ca0ceb6e3664be1",
           "722696a8dc172cef021b291cb86565c6b8b6399c08fb4c98218c7e5a337e21bf"
-        )
+        ),
+        "SHAKE-128": "6120e174ffc0c538bbd46ea00e620b1d52d6475cf24a01baee2a15dae27c914b",
+        "SHAKE-256": "d6f2853b3743687b9bbd05e3f32d6cbecb3f69bd252dfca665865dfb4d2a5eb3"
       }
     },
     "exact block size": {
@@ -184,7 +200,9 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "ff6a7d0efea45e5f0abcb173fce2be76b52d0f3fc363afe31d219472742d73e5",
           "6cee2ab91a94d41335c4fa25cbdd6ebd1a087637caa25099d5a9d60693cf62b9"
-        )
+        ),
+        "SHAKE-128": "786a2410d58ce5ef6e8446ee49ccd2a50557d32fd1e9e0954a4373545da250cc",
+        "SHAKE-256": "248606ab062799988e6b0d71c2dbf907e211c963a3823332d6abf4450d311080"
       }
     },
     "large msg array of byte": {
@@ -208,19 +226,12 @@ var keccak = require("./index"),
         "SHA-3-512": str(
           "6e8b8bd195bdd560689af2348bdc74ab7cd05ed8b9a57711e9be71e9726fda45",
           "91fee12205edacaf82ffbbaf16dff9e702a708862080166c2ff6ba379bc7ffc2"
-        )
+        ),
+        "SHAKE-128": "b867b1c591307a9015112b567ff6b4f318114111fc95e5bd7c9c60b74c1f8725",
+        "SHAKE-256": "096f2edb221db42843d65327861282dc946a0ba01a11863ab2d1dfd16e3973d4"
       }
     }
   },
-  modes = [
-    "SHA-3-224",
-    "SHA-3-256",
-    "SHA-3-384",
-    "SHA-3-512",
-    // todo
-    "SHAKE-128",
-    "SHAKE-256"
-  ],
   testKeys = Object.keys(testData),
   tests = {};
 
@@ -230,13 +241,24 @@ testKeys.forEach(function(testKey) {
     testType = testData[testKey],
     testInput = testType.input,
     testOutput = testType.output,
-    testModes = Object.keys(testOutput);
+    testModes = Object.keys(testOutput),
+    shakeBytes = 32,
+    shakeMax = 512;
   
   testModes.forEach(function(testMode) {
-    var expected = testOutput[testMode];
+    var expected = testOutput[testMode],
+      isShake = testMode.split("-")[0] === "SHAKE";
     tests["sync test keccak.mode(" + testMode + ") for " + testKey] = function(test) {
+      var instance, result, i;
       test.startTime();
-      var result = keccak.mode(testMode).init().update(testInput).digest();
+      instance = keccak.mode(testMode).init().update(testInput);
+      if (isShake) {
+        for (i=0; i<shakeMax; i+= shakeBytes) {
+          result = instance.digest(shakeBytes);
+        }
+      } else {
+        result = instance.digest();
+      }
       test.endTime();
       test.assert.identical(result, expected);
       test.done();
@@ -246,11 +268,28 @@ testKeys.forEach(function(testKey) {
       keccak.mode(testMode, function(instance) {
         instance.init(function(instance) {
           instance.update(testInput, function(instance) {
-            instance.digest(function(result) {
-              test.endTime();
-              test.assert.identical(result, expected);
-              test.done();
-            });
+            var i, next, last;
+            if (isShake) {
+              last = shakeMax - shakeBytes;
+              next = function(result) {
+                if (i === last) {
+                  test.endTime();
+                  test.assert.identical(result, expected);
+                  test.done();
+                } else {
+                  i+= shakeBytes;
+                  instance.digest(shakeBytes, next);
+                }
+              };
+              i = 0;
+              instance.digest(shakeBytes, next);
+            } else {
+              instance.digest(function(result) {
+                test.endTime();
+                test.assert.identical(result, expected);
+                test.done();
+              });
+            }
           });
         });
       });

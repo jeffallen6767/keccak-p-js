@@ -27,6 +27,16 @@ var
   
   Y_OFFSET = NUM_STATE_32_INTS / ROWS_X,
   
+  // pad bytes
+  SHA_PAD_FIRST_BYTE = 0x06,
+  SHA_PAD_LAST_BYTE = 0x80,
+  SHAKE_PAD_FIRST_BYTE = 0x1F,
+  SHAKE_PAD_LAST_BYTE = 0x80,
+  // mode types
+  GET_SHA_HASH = 0,
+  SET_SHAKE_MODE = 1,
+  GET_SHAKE_HASH = 2,
+  
   KECCAK_MODES = {
     "SHA-3-224":{}, 
     "SHA-3-256":{}, 
@@ -35,7 +45,8 @@ var
     "SHAKE-128":{},
     "SHAKE-256":{}
   },
-  KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES);
+  KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES),
+  SHAKE_MODE_PREFIX = "SHAKE";
 
 /*
 console.log("KECCAK_ROUNDS", KECCAK_ROUNDS);
@@ -281,6 +292,10 @@ var keccak = {
     var 
       parts = mode.split("-"),
       
+      // mode type
+      modeType = parts[0],
+      
+      // mode bit size
       modeBits = parts[parts.length-1] - 0,
       
       // length of digest requested
@@ -296,9 +311,9 @@ var keccak = {
       pt,
       len,
       inputType,
-      i,
-      // called async?
-      async = typeof optionalCallback === "function";
+      i, j,
+      // shake mode
+      modeShake;
     
     //console.log("mode", mode, "modeBits", modeBits, "modeBytes", modeBytes);
     
@@ -317,12 +332,13 @@ var keccak = {
         uInt32state = new Uint32Array(state);
         // current byte pointer
         pt = 0;
+        // shake mode?
+        modeShake = modeType === SHAKE_MODE_PREFIX ? 1 : 0;
+
+        //console.log("init mode", mode, "modeShake", modeShake, "modeBytes", modeBytes, "rsiz", rsiz);
+        
         // called async?
-        async = typeof optionalCallback === "function";
-        
-        //console.log("init mode", mode, "modeBytes", modeBytes, "rsiz", rsiz);
-        
-        return async ? optionalCallback(instance) : instance;
+        return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
       },
       
       // update can be called multiple times
@@ -362,13 +378,9 @@ var keccak = {
         //}
         
         var
-          j,
-          
           a,b,c,d,e,f,g,
           
-          hi, lo, hex,
-          
-          async = typeof optionalCallback === "function";
+          hi, lo, hex;
         
         j = pt;
         for (i = 0; i < len; i++) {
@@ -403,36 +415,71 @@ var keccak = {
           }
         }
         pt = j;
-
-        return async ? optionalCallback(instance) : instance;
+        // called async?
+        return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
       },
       
       // digest is called at the end to return the hash of input
-      "digest": function(optionalCallback) {
+      "digest": function() {
         //console.log("digest", pt, rsiz);
         
         var 
+          args = [].slice.call(arguments),
           hash = [],
           tmp,
-          async = typeof optionalCallback === "function";
+          num,
+          optionalCallback;
         
-        uInt8state[pt] ^= 0x06;
-        uInt8state[rsiz - 1] ^= 0x80;
-        
-        sha3_keccakf(uInt32state);
-
-        for (i = 0; i < modeBytes; i++) {
-          tmp = uInt8state[i].toString(16);
-          len = tmp.length;
-          hash[i] = "00".substr(len) + tmp;
+        switch (modeShake) {
+          case SET_SHAKE_MODE:
+            // set shake mode:
+            uInt8state[pt] ^= SHAKE_PAD_FIRST_BYTE;
+            uInt8state[rsiz - 1] ^= SHAKE_PAD_LAST_BYTE;
+            sha3_keccakf(uInt32state);
+            pt = 0;
+            modeShake = 2;
+            // we fall-through here on purpose...
+          case GET_SHAKE_HASH:
+            // get shake out:
+            //console.log("shakeout", typeof args[0], typeof args[1]);
+            num = typeof args[0] === "number" ? args[0] : modeBytes;
+            j = pt;
+            for (i = 0; i < num; i++) {
+              if (j >=rsiz) {
+                sha3_keccakf(uInt32state);
+                j = 0;
+              }
+              tmp = uInt8state[j++].toString(16);
+              len = tmp.length;
+              hash[i] = "00".substr(len) + tmp;
+            }
+            pt = j;
+            tmp = hash.join("");
+            // called async?
+            optionalCallback = args[args.length-1];
+            return typeof optionalCallback === "function" ? optionalCallback(tmp) : tmp;
+            break;
+          case GET_SHA_HASH:
+          default:
+            // sha mode:
+            uInt8state[pt] ^= SHA_PAD_FIRST_BYTE;
+            uInt8state[rsiz - 1] ^= SHA_PAD_LAST_BYTE;
+            sha3_keccakf(uInt32state);
+            for (i = 0; i < modeBytes; i++) {
+              tmp = uInt8state[i].toString(16);
+              len = tmp.length;
+              hash[i] = "00".substr(len) + tmp;
+            }
+            tmp = hash.join("");
+            // called async?
+            optionalCallback = args[0];
+            return typeof optionalCallback === "function" ? optionalCallback(tmp) : tmp;
+            break;
         }
-        
-        tmp = hash.join("");
-        
-        return async ? optionalCallback(tmp) : tmp;
       }
     };
-    return async ? optionalCallback(instance) : instance;
+    // called async?
+    return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
   }
 };
 

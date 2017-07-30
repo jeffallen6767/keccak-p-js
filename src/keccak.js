@@ -41,6 +41,19 @@ var
   NUM_STATE_UINT32 = NUM_STATE_BYTES / UINT32_BYTES,
   // # of uInt32 in horizontal plane
   UINT32_OFFSET_Y = NUM_STATE_UINT32 / COLS_Y,
+  // pad bytes
+  SHA_PAD_FIRST_BYTE = 0x06,
+  SHA_PAD_LAST_BYTE = 0x80,
+  SHAKE_PAD_FIRST_BYTE = 0x1F,
+  SHAKE_PAD_LAST_BYTE = 0x80,
+  // mode types
+  GET_SHA_HASH = 0,
+  SET_SHAKE_MODE = 1,
+  GET_SHAKE_HASH = 2,
+  // input types
+  INPUT_TYPE_STRING = 0,
+  INPUT_TYPE_BYTE_NUMBER = 1,
+  INPUT_TYPE_BYTE_STRING = 2,
   // all the data for each keccak mode
   KECCAK_MODES = {
     "SHA-3-224":{
@@ -63,7 +76,8 @@ var
     }
   },
   // all the keccak mode names
-  KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES)
+  KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES),
+  SHAKE_MODE_PREFIX = "SHAKE",
   // The uInt64 round constants  as [uInt32Lo, uInt32Hi]
   CONST_IOTA = [
     [0x00000001,0x00000000], // 0x0000000000000001
@@ -284,8 +298,11 @@ var keccak = {
       throw new Error("Keccak.mode requires one of: " + KECCAK_MODE_KEYS.join());
     }
     var 
-      // calc bitsize of state construct based on mode
+      // calc modetype and bitsize of state construct based on mode
       parts = mode.split("-"),
+      // mode type
+      modeType = parts[0],
+      // mode bit size
       modeBits = parts[parts.length-1] - 0,
       // length of digest (hash) requested ( in bytes )
       modeBytes = modeBits / BITS_IN_BYTE,
@@ -304,9 +321,9 @@ var keccak = {
       // type of data
       inputType,
       // loop
-      i,
-      // is constructor called async?
-      async = typeof optionalCallback === "function",
+      i, j,
+      // shake mode
+      modeShake,
       // create an instance of the mode
       instance = {
         // init resets everything for a new run
@@ -321,107 +338,140 @@ var keccak = {
           uInt32state = new Uint32Array(state);
           // current byte pointer
           pt = 0;
-          // is method called async?
-          async = typeof optionalCallback === "function";
+          // shake mode?
+          modeShake = modeType === SHAKE_MODE_PREFIX ? SET_SHAKE_MODE : GET_SHA_HASH;
           // handle async or sync call
-          return async ? optionalCallback(instance) : instance;
+          return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
         },
         // update can be called multiple times
         "update": function(input, optionalCallback) {
-          var
-            // temp vars and references
-            a,b,j,
-            // is method called async?
-            async = typeof optionalCallback === "function";
-          
-          // accept string or array of byte values
-          switch (typeof input) {
-            case "string":
-              inputType = 0;
-              break;
-            default:
-              switch (typeof input[0]) {
-                case "number":
-                  inputType = 1;
-                  break;
-                case "string":
-                  inputType = 2;
-                  break;
-                default:
-                  throw new Error([
-                    "update accepts string 'abc'",
-                    "array decimal [97,98,99]",
-                    "array hex [0x61,0x62,0x63]",
-                    "array octal [0237, 057, 0314]",
-                    "array string hex ['61','62','63'] only!"
-                  ].join(", "));
-                  break;
-              }
-              break;
-          }
           // length of input
           len = input.length;
           // index of current
           j = pt;
-          for (i = 0; i < len; i++) {
-            a = input[i];
-            switch (inputType) {
-              case 0:
-                b = a.charCodeAt();
-                break;
-              case 1:
-                b = a;
-                break;
-              case 2:
-                b = parseInt(a, BITS_IN_2_HEX_BYTES);
-                break;
-              default:
-                throw new Error("update unknown inputType: " + inputType);
-                break;
-            } 
-            // save value
-            uInt8state[j++] ^= b;
-            // check for sponge limit
-            if (j >= rsiz) {
-              // apply permutation function
-              sha3_keccakf(uInt32state);
-              // reset current index
-              j = 0;
+          // accept string or array of byte values
+          if (typeof input === "string") {
+            for (i = 0; i < len; i++) {
+              // save value
+              uInt8state[j++] ^= input.charCodeAt(i);;
+              // check for sponge limit
+              if (j >= rsiz) {
+                // apply permutation function
+                sha3_keccakf(uInt32state);
+                // reset current index
+                j = 0;
+              }
             }
+          } else if (typeof input[0] === "number") {
+            for (i = 0; i < len; i++) {
+              // save value
+              uInt8state[j++] ^= input[i];
+              // check for sponge limit
+              if (j >= rsiz) {
+                // apply permutation function
+                sha3_keccakf(uInt32state);
+                // reset current index
+                j = 0;
+              }
+            }
+          } else if (typeof input[0] === "string") {
+            for (i = 0; i < len; i++) {
+              // save value
+              uInt8state[j++] ^= parseInt(input[i], BITS_IN_2_HEX_BYTES);
+              // check for sponge limit
+              if (j >= rsiz) {
+                // apply permutation function
+                sha3_keccakf(uInt32state);
+                // reset current index
+                j = 0;
+              }
+            }
+          } else {
+            throw new Error([
+              "update accepts string 'abc'",
+              "array decimal [97,98,99]",
+              "array hex [0x61,0x62,0x63]",
+              "array octal [0237, 057, 0314]",
+              "array string hex ['61','62','63'] only!"
+            ].join(", "));
           }
           // save current index value
           pt = j;
           // handle async or sync call
-          return async ? optionalCallback(instance) : instance;
+          return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
         },
         // digest is called at the end to return the hash of input
-        "digest": function(optionalCallback) {
+        "digest": function() {
           var 
+            args = [].slice.call(arguments),
             hash = [],
-            PAD_FIRST_BYTE = 0x06,
-            PAD_LAST_BYTE = 0x80,
             tmp,
-            async = typeof optionalCallback === "function";
-          // set first pad byte
-          uInt8state[pt] ^= PAD_FIRST_BYTE;
-          // set last pad byte
-          uInt8state[rsiz - 1] ^= PAD_LAST_BYTE;
-          // apply permutation function
-          sha3_keccakf(uInt32state);
-          // copy bytes to hash as hex
-          for (i = 0; i < modeBytes; i++) {
-            tmp = uInt8state[i].toString(BITS_IN_2_HEX_BYTES);
-            len = tmp.length;
-            hash[i] = "00".substr(len) + tmp;
+            num,
+            optionalCallback;
+          // choose mode, SHA or SHAKE
+          switch (modeShake) {
+            case SET_SHAKE_MODE:
+              // set first pad byte
+              uInt8state[pt] ^= SHAKE_PAD_FIRST_BYTE;
+              // set last pad byte
+              uInt8state[rsiz - 1] ^= SHAKE_PAD_LAST_BYTE;
+              // apply permutation function
+              sha3_keccakf(uInt32state);
+              // reset pointer
+              pt = 0;
+              // increment shake mode
+              modeShake = GET_SHAKE_HASH;
+              // we fall-through here on purpose...
+            case GET_SHAKE_HASH:
+              //console.log("shakeout", typeof args[0], typeof args[1]);
+              // get number of bytes to output if provided, fallback to bytes for mode
+              num = typeof args[0] === "number" ? args[0] : modeBytes;
+              // point at 1st output byte
+              j = pt;
+              // number of bytes to output
+              for (i = 0; i < num; i++) {
+                // are we at capacity?
+                if (j >=rsiz) {
+                  // apply permutation function
+                  sha3_keccakf(uInt32state);
+                  // reset pointer
+                  j = 0;
+                }
+                tmp = uInt8state[j++].toString(BITS_IN_2_HEX_BYTES);
+                len = tmp.length;
+                hash[i] = "00".substr(len) + tmp;
+              }
+              // save current pointer
+              pt = j;
+              // called async?
+              optionalCallback = args[args.length-1];
+              break;
+            case GET_SHA_HASH:
+            default:
+              // set first pad byte
+              uInt8state[pt] ^= SHA_PAD_FIRST_BYTE;
+              // set last pad byte
+              uInt8state[rsiz - 1] ^= SHA_PAD_LAST_BYTE;
+              // apply permutation function
+              sha3_keccakf(uInt32state);
+              // copy bytes to hash as hex
+              for (i = 0; i < modeBytes; i++) {
+                tmp = uInt8state[i].toString(BITS_IN_2_HEX_BYTES);
+                len = tmp.length;
+                hash[i] = "00".substr(len) + tmp;
+              }
+              // called async?
+              optionalCallback = args[0];
+              break;
           }
           // create string hash
           tmp = hash.join("");
           // handle async or sync call
-          return async ? optionalCallback(tmp) : tmp;
+          return typeof optionalCallback === "function" ? optionalCallback(tmp) : tmp;
         }
       };
     // handle async or sync call
-    return async ? optionalCallback(instance) : instance;
+    return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
   }
 };
 // make module visible
