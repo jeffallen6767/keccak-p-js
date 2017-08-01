@@ -1,6 +1,7 @@
 // test keccak modes
 var keccak = require("./index"),
   tester = require("testing"),
+  fs = require("fs"),
   str = function() {
     // join all args into one string
     return [].slice.call(arguments).join("");
@@ -297,5 +298,59 @@ testKeys.forEach(function(testKey) {
   });
 });
 
-// run tests
-tester.run(tests);
+// large file test:
+(function largeFileTest() {
+  var
+    testMode = "SHA-3-256",
+    testFile = "./data/a_1m.dat",
+    expected = "5c8875ae474a3634ba4fd55ec85bffd661f32aca75c6d699d0cdcb6c115891c1";
+  keccak.mode(testMode, function(instance) {
+    var CHUNK_SIZE = instance.meta.rsiz + 1;
+    fs.readFile(testFile, (err, data) => {
+      console.log("fs.readFile", err, data.length);
+      if (err) throw err;
+      tests["async all-in-one-test keccak.mode(" + testMode + ") for 1m byte file: " + testFile] = function(test) {
+        instance.init(function(instance) {
+          test.startTime();
+          instance.update(data, function(instance) {
+            instance.digest(function(result) {
+              test.endTime();
+              test.assert.identical(result, expected);
+              test.done();
+            });
+          });
+        });
+      };
+      tests["async " + CHUNK_SIZE + "-byte-chunk-test keccak.mode(" + testMode + ") for 1m byte file: " + testFile] = function(test) {
+        // demonstrate instance re-use
+        instance.init(function(instance) {
+          var
+            buffer = new Buffer(CHUNK_SIZE),
+            len = data.length,
+            max = Math.floor(len / CHUNK_SIZE),
+            next = function(idx) {
+              var
+                amt = idx + CHUNK_SIZE,
+                more = amt < max,
+                chunk = more ? data.slice(idx, amt) : data.slice(idx);
+              instance.update(chunk, function(instance) {
+                if (more) {
+                  next(amt);
+                } else {
+                  instance.digest(function(result) {
+                    test.endTime();
+                    test.assert.identical(result, expected);
+                    test.done();
+                  });
+                }
+              });
+            };
+          test.startTime();
+          next(0);
+        });
+      }
+      // run tests
+      tester.run(tests);
+    });
+  });
+})();

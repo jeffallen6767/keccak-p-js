@@ -318,14 +318,19 @@ var keccak = {
       pt,
       // length of data
       len,
-      // type of data
-      inputType,
       // loop
       i, j,
       // shake mode
       modeShake,
       // create an instance of the mode
       instance = {
+        "meta": {
+          "mode": mode,
+          "modeType": modeType,
+          "modeBits": modeBits,
+          "modeBytes": modeBytes,
+          "rsiz": rsiz
+        },
         // init resets everything for a new run
         "init": function(optionalCallback) {
           // A new ArrayBuffer object of size, in bytes, of the array buffer to create.. Its contents are initialized to 0.
