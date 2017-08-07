@@ -45,6 +45,23 @@ var keccak = require("./index"),
         "SHAKE-256": "9440b99d6088e20203aebafa8e9dffa94ed35ef1f41f5fdf549fbcc5a0f68298"
       }
     },
+    "short message string": {
+      "input": "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+      "output": {
+        "SHA-3-224": "8a24108b154ada21c9fd5574494479ba5c7e7ab76ef264ead0fcce33",
+        "SHA-3-256": "41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376",
+        "SHA-3-384": str(
+          "991c665755eb3a4b6bbdfb75c78a492e8c56a22c5c4d7e429bfdbc32b9d4ad5a",
+          "a04a1f076e62fea19eef51acd0657c22"
+        ),
+        "SHA-3-512": str(
+          "04a371e84ecfb5b8b77cb48610fca8182dd457ce6f326a0fd3d7ec2f1e91636d",
+          "ee691fbe0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e"
+        ),
+        "SHAKE-128": "b0db71fef49e81eb5202552168e51ff3d14a9bab965c213d5319d82c4dbcbcd7",
+        "SHAKE-256": "5e2334ec2fc8fbe5264adce521678dcf22784d6812c81dcaa4e128e33fe14576"
+      }
+    },
     "short message bytes": {
       "input": bytes("9F2FCC7C90DE090D6B87CD7E9718C1EA6CB21118FC2D5DE9F97E5DB6AC1E9C10"),
       "output": {
