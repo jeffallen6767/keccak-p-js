@@ -16,6 +16,6 @@
   },
   "homepage": "https://github.com/jeffallen6767/keccak-p-js#readme",
   "dependencies": {
-
+    "testing" : "https://github.com/jeffallen6767/testing.git"
   }
 }
