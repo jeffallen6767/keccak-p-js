@@ -24,9 +24,13 @@ Run the tests:
 Use it in you own project:
 
     $ npm install git://github.com/jeffallen6767/keccak-p-js.git --save
+    
+    or
+    
+    $ npm install https://github.com/jeffallen6767/keccak-p-js.git --save
 
 
-Use it in your code:
+Use it in your code ( see test.js for in-depth examples and details ):
 ```javascript
 var keccak = require("keccak-p-js");
 
@@ -44,4 +48,35 @@ keccak.mode("SHA-3-256", function(mode) {
     });
   });
 });
+```
+
+Supports the following modes:
+
+    SHA-3-224
+    SHA-3-256
+    SHA-3-384
+    SHA-3-512
+    
+    and
+    
+    SHAKE-128
+    SHAKE-256
+
+
+How to SHAKE-n:
+just create an instance with a shake mode, and update it with input as normal
+then call instance.digest(n-bytes) as many times as you like to create n bytes of hash 
+at whatever rate you need
+```javascript
+
+var shake = keccak.mode("SHAKE-256").init().update("abc"),
+  hash = [
+    shake.digest(32),
+    shake.digest(16),
+    shake.digest(8),
+    shake.digest(5),
+    shake.digest(3)
+  ].join("");
+
+console.log("sync 64 bytes of SHAKE-256 of abc is ", hash);
 ```
