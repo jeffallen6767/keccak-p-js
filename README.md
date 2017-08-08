@@ -64,9 +64,11 @@ Supports the following modes:
 
 
 How to SHAKE-n:
-just create an instance with a shake mode, and update it with input as normal
-then call instance.digest(n-bytes) as many times as you like to create n bytes of hash 
-at whatever rate you need
+
+* create an instance using a valid shake mode
+* update the instance with input to be hashed
+* call instance.digest(n-bytes) 1..n times to create n bytes of hash 
+
 ```javascript
 
 var shake = keccak.mode("SHAKE-256").init().update("abc"),
