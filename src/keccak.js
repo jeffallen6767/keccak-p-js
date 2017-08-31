@@ -9,7 +9,6 @@ Diagram of state @ http://keccak.noekeon.org/Keccak-f-PiecesOfState.pdf
 
 NOTE: JavaScript has no 64-bit unsigned integer datatype, 
 so we represent them as [uInt32Lo, uInt32Hi]
-
 */
 
 var 
@@ -54,29 +53,11 @@ var
   INPUT_TYPE_STRING = 0,
   INPUT_TYPE_BYTE_NUMBER = 1,
   INPUT_TYPE_BYTE_STRING = 2,
-  // all the data for each keccak mode
-  KECCAK_MODES = {
-    "SHA-3-224":{
-      
-    }, 
-    "SHA-3-256":{
-      
-    }, 
-    "SHA-3-384":{
-      
-    }, 
-    "SHA-3-512":{
-      
-    },
-    "SHAKE-128":{
-      
-    },
-    "SHAKE-256":{
-      
-    }
-  },
-  // all the keccak mode names
-  KECCAK_MODE_KEYS = Object.keys(KECCAK_MODES),
+  // all the keccak modes
+  KECCAK_MODE_KEYS = [
+    "SHA-3-224", "SHA-3-256", "SHA-3-384", "SHA-3-512",
+    "SHAKE-128", "SHAKE-256"
+  ],
   SHAKE_MODE_PREFIX = "SHAKE",
   // The uInt64 round constants  as [uInt32Lo, uInt32Hi]
   CONST_IOTA = [
@@ -358,7 +339,7 @@ var keccak = {
           if (typeof input === "string") {
             for (i = 0; i < len; i++) {
               // save value
-              uInt8state[j++] ^= input.charCodeAt(i);;
+              uInt8state[j++] ^= input.charCodeAt(i);
               // check for sponge limit
               if (j >= rsiz) {
                 // apply permutation function
