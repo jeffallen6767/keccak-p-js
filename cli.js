@@ -1,53 +1,98 @@
 #!/usr/bin/env node
-var keccak = require("./index"),
+var
+  keccak = require("./index"),
   colors = require("colors"),
-	fs = require('fs'),
+  fs = require('fs'),
+  utf8 = require('utf8'),
   program = require('commander'),
   pkg = require('./package.json'),
   version = pkg.version,
   KECCAK_MODES = {
     "sha": [
-      "224", "256", "384", "512"
+      "sha224", "sha256", "sha384", "sha512"
     ],
     "shake": [
-      "128", "256"
+      "shake128", "shake256"
     ]
   },
+  kSha = KECCAK_MODES.sha,
+  kShake = KECCAK_MODES.shake,
   make_red = function make_red(txt) {
     return colors.red(txt);
-  };
+  },
+  message,
+  filePath,
+  compare,
+  kInst,
+  result,
+  done;
+
   
 program
   .version(version)
-  .option('-f, --file', 'file to apply keccak');
-
-program
-  .command('sha <mode> [text]')
-  .description('run keccak sha-3-<mode> where mode is one of 224, 256, 384 or 512')
-  .action(function(m, t, c) {
-    var mode = KECCAK_MODES.sha.indexOf(m) !== -1 && "SHA-3-" + m,
-      file = c.parent.file ? t : false,
-      text = file ? false : t,
-      k,
-      result;
-    if (mode && (file || text)) {
-      try {
-        k = keccak.mode(mode).init();
-        if (text) {
-          result = k.update(text).digest();
-        } else {
-          result = k.update(fs.readFileSync(file)).digest();
-        }
-        console.log(result);
-      } catch (e) {
-        console.error(make_red(e.message));
-      }
-    } else {
-      program.outputHelp(make_red);
-    }
-  });
-
-// TODO: shake
-
-program
+  .option('-a, --algorithm [algo]', 'algorithm to apply keccak')
+  .option('-m, --message [text]', 'text to apply keccak')
+  .option('-f, --file [path]', 'file to apply keccak')
+  .option('-c, --compare [checksum]', 'Checksum to compare with result')
   .parse(process.argv);
+
+algo = program.algorithm;
+message = program.message;
+filePath = program.file;
+compare = program.compare;
+
+done = function(result) {
+  if (compare) {
+    if (compare.toLowerCase() === result.toLowerCase()) {
+      console.log(
+        colors.green.bold(result)
+      );
+      process.exit(0);
+    } else {
+      console.log(
+        colors.red.bold(result)
+      );
+      process.exit(1);
+    }
+  } else {
+    console.log(
+      colors.white.bold(result)
+    );
+    process.exit(0);
+  }
+};
+
+if (algo && kSha.indexOf(algo) !== -1) {
+  algo = algo.replace("sha", "SHA-3-");
+  console.log("algo", algo);
+/* TODO SHAKE
+} else if (algo && kShake.indexOf(algo) !== -1) {
+
+*/
+} else {
+  console.log(
+    colors.white.bold('ERROR: Must use with -a [algo]')
+  );
+  program.help();
+  process.exit(1);
+}
+
+if (filePath) {
+  done(
+    keccak.mode(algo).init().update(
+      fs.readFileSync(filePath)
+    ).digest()
+  );
+} else if (message) {
+  done(
+    keccak.mode(algo).init().update(
+      utf8.encode(message)
+    ).digest()
+  );
+} else {
+  console.log(
+    colors.white.bold('ERROR: Must use with either -m [text] or -f [path]')
+  );
+  program.help();
+  process.exit(1);
+}
