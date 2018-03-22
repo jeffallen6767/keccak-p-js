@@ -46,6 +46,7 @@ var
   SHAKE_PAD_FIRST_BYTE = 0x1F,
   SHAKE_PAD_LAST_BYTE = 0x80,
   // mode types
+  OPTIMIZED_SHA_HASH = -1,
   GET_SHA_HASH = 0,
   SET_SHAKE_MODE = 1,
   GET_SHAKE_HASH = 2,
@@ -273,7 +274,7 @@ function sha3_keccakf(A) {
 
 // the keccak constructor for all modes
 var keccak = {
-  "mode": function(mode, optionalCallback) {
+  "mode": function(mode, optionalCallback, OPTIMIZED_MODE) {
     // check for proper mode
     if (KECCAK_MODE_KEYS.indexOf(mode) === -1) {
       throw new Error("Keccak.mode requires one of: " + KECCAK_MODE_KEYS.join());
@@ -325,9 +326,32 @@ var keccak = {
           // current byte pointer
           pt = 0;
           // shake mode?
-          modeShake = modeType === SHAKE_MODE_PREFIX ? SET_SHAKE_MODE : GET_SHA_HASH;
+          modeShake = (modeType === SHAKE_MODE_PREFIX) 
+            ? SET_SHAKE_MODE 
+            : OPTIMIZED_MODE
+              ? OPTIMIZED_SHA_HASH
+              : GET_SHA_HASH;
           // handle async or sync call
           return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
+        },
+        // can be called multiple times
+        "prepare_optimized": function(input, optionalCallback) {
+          var
+            optimized = typeof OPTIMIZED_MODE === "object",
+            parts = optimized ? OPTIMIZED_MODE.partition(input) : [],
+            next = function() {
+              OPTIMIZED_MODE.cache = {
+                // copy prepared buffer:
+                "buffer": new Uint8Array(state.slice(0)),
+                // remember where we left off:
+                "pt": pt
+              };
+              // handle async or sync call
+              return typeof optionalCallback === "function" ? optionalCallback(instance) : instance;
+            };
+          return optimized
+              ? instance.update(parts[0], next)
+              : instance.update(input, optionalCallback);
         },
         // update can be called multiple times
         "update": function(input, optionalCallback) {
@@ -432,6 +456,11 @@ var keccak = {
               // called async?
               optionalCallback = args[args.length-1];
               break;
+            case OPTIMIZED_SHA_HASH:
+              pt = OPTIMIZED_MODE.cache.pt;
+              uInt8state.set(OPTIMIZED_MODE.cache.buffer);
+              instance.update(OPTIMIZED_MODE.increment());
+              // we fall-through here on purpose...
             case GET_SHA_HASH:
             default:
               // set first pad byte
