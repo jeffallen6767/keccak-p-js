@@ -12,6 +12,7 @@ so we represent them as [uInt32Lo, uInt32Hi]
 */
 
 var 
+  undefined,
   // rounds of permutation to apply
   KECCAK_ROUNDS = 24,
   // width of state ( row )
@@ -145,7 +146,7 @@ function sha3_keccakf(A) {
     k,p,q,r,s,t,u,v,w,x,y,z;
   
   for (i=0; i<KECCAK_ROUNDS; i++) {
-    
+
     /* represent 25 (5x5) uInt64 as a flat array of uInt32
        x,y maps to A[0..49], A[0] = int32Lo, A[1] = int32Hi of [x0,y0]
       0  1    2  3    4  5    6  7    8  9
@@ -192,7 +193,7 @@ function sha3_keccakf(A) {
         A[q+1] ^= p;
       }
     }
-    
+
     // ρ (rho) step, see: http://keccak.noekeon.org/Keccak-f-Rho.pdf
     for (y=0; y<COLS_Y; y++) {
       p = y * UINT32_OFFSET_Y; // column
@@ -226,6 +227,7 @@ function sha3_keccakf(A) {
     36 37 38 39 30 31 32 33 34 35
     [3,3] [4,3] [0,3] [1,3] [2,3]
     */
+    
     // π (pi) step, see: http://keccak.noekeon.org/Keccak-f-Pi.pdf
     for (y=0; y<COLS_Y; y++) {
       p = y * UINT32_OFFSET_Y; // column
@@ -311,7 +313,8 @@ var keccak = {
           "modeType": modeType,
           "modeBits": modeBits,
           "modeBytes": modeBytes,
-          "rsiz": rsiz
+          "rsiz": rsiz,
+          "NUM_STATE_BYTES": NUM_STATE_BYTES
         },
         // init resets everything for a new run
         "init": function(optionalCallback) {
@@ -459,7 +462,8 @@ var keccak = {
             case OPTIMIZED_SHA_HASH:
               pt = OPTIMIZED_MODE.cache.pt;
               uInt8state.set(OPTIMIZED_MODE.cache.buffer);
-              instance.update(OPTIMIZED_MODE.increment());
+              tmp = typeof args[1] === "undefined" ? OPTIMIZED_MODE.increment() : args[1];
+              instance.update(tmp);
               // we fall-through here on purpose...
             case GET_SHA_HASH:
             default:
