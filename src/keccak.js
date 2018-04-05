@@ -464,6 +464,7 @@ var keccak = {
               uInt8state.set(OPTIMIZED_MODE.cache.buffer);
               tmp = typeof args[1] === "undefined" ? OPTIMIZED_MODE.increment() : args[1];
               instance.update(tmp);
+              OPTIMIZED_MODE.cache.bytes = uInt8state.slice();
               // we fall-through here on purpose...
             case GET_SHA_HASH:
             default:
